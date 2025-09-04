@@ -20,7 +20,8 @@ if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
     st.image(image, caption="Gambar yang diupload", use_column_width=True)
 
-    img = image.resize((224, 224))  
+    img_height, img_width = 180,180
+    img = image.resize((img_height, img_width)) 
     img_array = np.array(img) / 255.0
     img_array = np.expand_dims(img_array, axis=0)
 
