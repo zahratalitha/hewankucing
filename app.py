@@ -2,19 +2,18 @@ import streamlit as st
 import tensorflow as tf
 import numpy as np
 from PIL import Image
+from huggingface_hub import hf_hub_download
 
-# === Konfigurasi ===
-MODEL_PATH = "anjingkucing.h5"
-IMG_SIZE = 180  # samakan dengan saat training
+MODEL_REPO = "zahratalitha/hewankucing"  
+MODEL_FILENAME = "klasifikasihewan.h5"
+IMG_SIZE = 180  # samakan dengan training
 
-# === Load model langsung ===
 @st.cache_resource
 def load_model():
-    return tf.keras.models.load_model(MODEL_PATH)
-
+    model_path = hf_hub_download(repo_id=MODEL_REPO, filename=MODEL_FILENAME)
+    return tf.keras.models.load_model(model_path, compile=False, safe_mode=False)
 model = load_model()
 
-# === Preprocessing & Prediksi ===
 def predict(image):
     img = image.resize((IMG_SIZE, IMG_SIZE))
     img_array = tf.keras.utils.img_to_array(img)
