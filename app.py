@@ -7,8 +7,8 @@ import numpy as np
 from PIL import Image
 
 # === Konfigurasi ===
-REPO_ID = "username/anjingkucing"   # ganti dengan repo HuggingFace kamu
-FILENAME = "anjingkucing.h5"
+REPO_ID = "zahratalitha/hewankucing"   # ganti dengan repo HuggingFace kamu
+FILENAME = "klasifikasihewan.h5"
 IMG_SIZE = 180
 
 # === Bangun ulang arsitektur model ===
