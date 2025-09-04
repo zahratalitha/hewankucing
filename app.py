@@ -1,65 +1,52 @@
 import streamlit as st
 import tensorflow as tf
-from tensorflow.keras import layers, models
-from tensorflow.keras.applications import EfficientNetB0
-from huggingface_hub import hf_hub_download
+from tensorflow.keras.models import load_model
+from tensorflow.keras.applications.efficientnet import preprocess_input
+from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
 
-# === Konfigurasi ===
-REPO_ID = "zahratalitha/hewankucing"   # ganti dengan repo HuggingFace kamu
-FILENAME = "klasifikasihewan.h5"
-IMG_SIZE = 180
-
-# === Bangun ulang arsitektur model ===
-def build_model():
-    base_model = EfficientNetB0(
-        weights="imagenet",
-        include_top=False,
-        input_shape=(IMG_SIZE, IMG_SIZE, 3)
-    )
-    base_model.trainable = False
-
-    inputs = layers.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
-    x = layers.RandomFlip("horizontal")(inputs)
-    x = layers.RandomRotation(0.15)(x)
-    x = layers.RandomZoom(0.1)(x)
-    x = base_model(x, training=False)
-    x = layers.GlobalAveragePooling2D()(x)
-    x = layers.Dropout(0.4)(x)
-    outputs = layers.Dense(1, activation="sigmoid")(x)
-
-    model = models.Model(inputs, outputs)
-    return model
-
-# === Load model dengan weights ===
+IMG_HEIGHT, IMG_WIDTH = 180, 180
 @st.cache_resource
-def load_model():
-    model_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
-    model = build_model()
-    model.load_weights(model_path)  # pakai load_weights, bukan load_model
+def load_trained_model():
+    model = load_model("best_model.h5")  
     return model
+model = load_trained_model()
 
-model = load_model()
+class_names = ["Kucing 🐱", "Anjing 🐶"]  
 
-# === Prediksi ===
-def predict(image):
-    img = image.convert("RGB").resize((IMG_SIZE, IMG_SIZE))
-    img_array = tf.keras.utils.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0) / 255.0
-    prediction = model.predict(img_array)[0][0]
-    return prediction
+def preprocess_image(img):
+    img = img.resize((IMG_WIDTH, IMG_HEIGHT))  # resize sesuai training
+    img_array = image.img_to_array(img)
+    img_array = np.expand_dims(img_array, axis=0)
+    img_array = preprocess_input(img_array)
+    return img_array
 
-# === UI ===
-st.set_page_config(page_title="Klasifikasi Anjing vs Kucing", page_icon="🐶🐱")
+
+def predict_image(model, img, class_names):
+    img_array = preprocess_image(img)
+    preds = model.predict(img_array)
+
+    # Sigmoid (Dense(1, activation="sigmoid"))
+    prob = preds[0][0]
+    pred_class = 1 if prob > 0.5 else 0
+    class_label = class_names[pred_class]
+
+    return class_label, float(prob if pred_class == 1 else 1 - prob)
+
+
 st.title("🐶🐱 Klasifikasi Anjing vs Kucing")
+st.write("Upload gambar")
 
-uploaded_file = st.file_uploader("Upload gambar anjing/kucing", type=["jpg", "jpeg", "png"])
+# Upload gambar
+uploaded_file = st.file_uploader("Pilih file gambar", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Gambar yang diupload", use_container_width=True)
+    img = Image.open(uploaded_file).convert("RGB")
+    st.image(img, caption="Gambar yang diupload", use_column_width=True)
 
-    pred = predict(image)
-    label = "🐶 Anjing" if pred < 0.5 else "🐱 Kucing"
-    st.subheader(f"Hasil Prediksi: {label} ({pred:.2f})")
+    with st.spinner("Sedang memproses..."):
+        label, prob = predict_image(model, img, class_names)
+
+    st.success(f"Hasil Prediksi: **{label}**")
+    st.write(f"Tingkat keyakinan: **{prob:.2%}**")
