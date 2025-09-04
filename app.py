@@ -1,7 +1,5 @@
 import streamlit as st
 import tensorflow as tf
-from tensorflow.keras.applications.efficientnet import preprocess_input
-from tensorflow.keras.preprocessing import image
 import numpy as np
 from PIL import Image
 from huggingface_hub import hf_hub_download
